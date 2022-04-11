@@ -1,0 +1,193 @@
+---
+title: "HW12_Sabrina Liu"
+output: html_document
+---
+
+#1.(a)
+```{r}
+Covid_19 <- read.table(file = "china-blood-covid-19.csv", header = TRUE, sep = ",", stringsAsFactors = T)
+Covid_19
+df = Covid_19[,c('group','blood',"count")]
+df
+df.table<-array(data = c(670, 45, 469, 25, 178, 15,458,28), dim = c(2,4), dimnames = list(group = c("Jinyintan", "Renmin"), blood = c("A", "B", "AB","O")))
+df.table
+rowTotals = rowSums(df.table)
+rowTotals
+
+colTotals = colSums(df.table)
+colTotals
+
+n = sum(colTotals)
+
+exp.table = rowTotals %*% t(colTotals)/n 
+exp.table
+
+log.lik.stat = 2*sum(df.table*log(df.table/exp.table))
+log.lik.stat
+
+X.square = sum((df.table-exp.table)^2/exp.table)
+X.square
+```
+
+#1.(b)
+```{r}
+model.fit = glm(as.factor(Covid_19$diagnosis) ~ as.factor(Covid_19$region) + as.factor(Covid_19$blood), family = binomial(link = "logit"))
+summary(model.fit)
+```
+
+#1.(c)
+```{r}
+predict <- predict(model.fit, newdata=data.frame(Covid_19$diagnosis == "COVID-19", Covid_19$region == "Wuhon", Covid_19$blood == "A") )
+predict
+```
+
+#1.(d)
+#We estimated Rh-negative blood type to have a protective effect for all three outcomes. Our results add to the growing body of evidence suggesting blood type may play a role in COVID-19.
+
+#2.(a)
+```{r}
+df.table<-array(data = c(871,302,444,80,873,43), dim = c(2,3), dimnames = list(Race = c("White", "Black"), Party_Identification = c("Democrat", "Independent", "Republican")))
+df.table
+
+
+rowTotals = rowSums(df.table)
+rowTotals
+
+colTotals = colSums(df.table)
+colTotals
+
+n = sum(colTotals)
+
+
+d = (length(rowTotals)-1)*(length(colTotals)-1)
+exp.table = rowTotals %*% t(colTotals)/n 
+exp.table
+
+log.lik.stat = 2*sum(df.table*log(df.table/exp.table))
+log.lik.stat
+
+X.square = sum((df.table-exp.table)^2/exp.table)
+X.square
+
+pval.loglik = pchisq(log.lik.stat, df = d, lower.tail = F) #Set lower.tail to FALSE to compute right-tail probs
+pval.loglik
+
+pval.X.square = pchisq(X.square, df = d, lower.tail = F)
+pval.X.square
+
+```
+#The p value is close to 0 that we can reject the null hyphothesis in this case.
+
+#2.(b)
+```{r}
+row.props = rowTotals/n
+col.props = colTotals/n #Get the marginal proportions of rows and columns
+
+res.SE.table = sqrt(exp.table*((1-row.props)%*%t(1-col.props))) #Again, just used some quick linear algebra to generate the table of estimated standard errors quickly
+
+st.res.table = (df.table - exp.table)/res.SE.table
+st.res.table
+```
+
+#2.4.23
+```{r}
+Picloram <- read.table(file = "picloram.csv", header = TRUE, sep = ",")
+Picloram
+model.picloram <-glm(formula = kill/total ~ picloram, weight = total, family = 
+    binomial(link=cloglog), data = Picloram)
+summary(model.picloram)
+plot(x = Picloram$picloram, y = Picloram$kill/Picloram$total, xlab = "Picloram", ylab = 
+    "Estimated kill rate", col = rep(x = c("black", "blue", "orange"), each = 4), 
+    pch = rep(x = 1:3, each = 4))
+curve(expr = plogis(q = model.picloram$coefficients[1] + model.picloram$coefficients[2]*x), add 
+    = TRUE, col = "red", xlim = c(min(Picloram$picloram), max(Picloram$picloram)))
+legend(x = 3, y = 0.4, legend = c("Rep 1", "Rep 2", "Rep 3"), col = c("black", 
+    "blue", "orange"), pch = c(1,2,3), bty = "n")
+plot(x = Picloram$picloram, y = Picloram$kill/Picloram$total, xlab = "Picloram", ylab = 
+    "Estimated kill rate", col = rep(x = c("black", "blue", "orange"), each = 4), 
+    pch = rep(x = 1:3, each = 4))
+curve(expr = plogis(q = model.picloram$coefficients[1] + model.picloram$coefficients[2]*x), add 
+    = TRUE, col = "red", xlim = c(min(Picloram$picloram), max(Picloram$picloram)))
+legend(x = 3, y = 0.4, legend = c("Rep 1", "Rep 2", "Rep 3"), col = c("black", 
+    "blue", "orange"), pch = c(1,2,3), bty = "n")
+pi0<-0.9
+LD<-(log(pi0/(1-pi0)) - model.picloram$coefficients[1])/model.picloram$coefficients[2]
+as.numeric(LD)
+
+segments(x0 = -1, y0 = pi0, x1 = LD, y1 = pi0, lty = "dashed")
+segments(x0 = LD, y0 = -1, x1 = LD, y1 = pi0, lty = "dashed")
+root.func <- function(x, model.picloram.obj, pi0, alpha) { beta.hat <- model.picloram.obj$coefficients
+cov.mat <- vcov(model.picloram.obj)
+var.den <- cov.mat[1,1] + x^2*cov.mat[2,2] +
+2*x*cov.mat[1,2]
+abs(beta.hat[1] + beta.hat[2]*x - log(pi0/(1-pi0))) /
+sqrt(var.den) - qnorm(1-alpha/2) }
+lower <- uniroot(f = root.func, interval = c(min(Picloram$picloram), LD), model.picloram.obj = model.picloram, pi0 = 0.9, alpha = 0.05)
+lower # lower$root contains the lower bound
+upper <- uniroot(f = root.func, interval = c(LD, max(Picloram$picloram)), model.picloram.obj = model.picloram, pi0 = 0.9, alpha = 0.05)
+upper # upper$root contains the upper bound
+```
+#The estimated kill rate = 3 is higher than the plot of logic regression plot. According to previous question, we would prefer 2.45 dosage in this case since we are 95% confident that this is a safe choice. 1) There are n identical trials. 2) There are two possible outcomes for each trial. 3) The trials are independent of each other. 4) The probability of success remains constant for each trial. 5) The random variable of interest W is the number of successes.
+
+#2.4.24.(a)
+```{r}
+incontinence <- read.table(file = "incontinence.csv", header = TRUE, sep = ",", stringsAsFactors = T)
+incontinence
+model.fit1 <- glm(incontinence$y ~ incontinence$x1, family = binomial(link = "logit"))
+model.fit2 <- glm(incontinence$y ~ incontinence$x2, family = binomial(link = "logit"))
+model.fit3 <- glm(incontinence$y ~ incontinence$x3, family = binomial(link = "logit"))
+plot(x=predict(model.fit1), y=incontinence$y,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+plot(x=predict(model.fit2), y=incontinence$y,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+plot(x=predict(model.fit3), y=incontinence$y,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+```
+
+#2.4.24.(b)
+```{r}
+model.fit4 <- glm(incontinence$y ~ incontinence$x1+incontinence$x2+incontinence$x3, family = binomial(link = "logit"), maxit=100)
+plot(x=predict(model.fit4), y=incontinence$y,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+```
+#This is probably due to complete separation, i.e. one group being entirely composed of 0s or 1s.
+
+#2.4.24.(c)
+```{r}
+library(package = logistf)
+mod.fit.firth1 <- logistf(incontinence$y ~ incontinence$x1+incontinence$x2+incontinence$x3, family = binomial(link = "logit"), maxit=100)
+plot(x=predict(mod.fit.firth1), y=incontinence$y,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+```
+
+#2.4.24.(d)
+#An explanatory variable is the expected cause, and it explains the results. A response variable is the expected effect, and it responds to explanatory variables.
+
+#3.6.9.(a)
+#I think researchers want to study the relationship between different symptoms and the severity of different illnesses. Moreover, I think they will make conclusion about how the classification level is related to a specific symtoms. For example, non-aggressive symptoms is a low severity lever symptom. 
+
+#3.6.9.(b)
+```{r}
+Cognard<-array(data = c(0,1,0,0,0,0,83,0,8,0,1,1,0,17,2,1,0,0,0,0,7,1,2,6,2,1,0,6,10,0,8,1,0,0,6,19,4,2,3,0,0,1,5,1,0,0,0,6,0), dim = c(7,7), dimnames = list(symptoms = c("Hemorrhage", "Intracranial hypertension","Focal neurologic deficit", "Seizures", "Cardiac deficiency", "Myelopathy", "Non-aggressive symptoms"), Classification = c("1", "2a", "2b","2a and 2b", "3", "4", "5")))
+Cognard
+ind.test<-chisq.test(x = Cognard, correct = FALSE)
+ind.test
+```
+
+#3.6.9.(c)
+#Chi-square, like any analysis has its limitations. One of the limitations is that all participants measured must be independent, meaning that an individual cannot fit in more than one category. If a participant can fit into two categories a chi-square analysis is not appropriate. However, this sample size is greater than 205 cases, so in this case, I think Chi-square is appropriate. 

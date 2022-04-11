@@ -1,0 +1,239 @@
+---
+title: "HW7_Sabrina Liu"
+output: html_document
+---
+
+#1(a)
+```{r}
+crab = read.table("HorseshoeCrabs.txt") 
+color = crab[,1]
+spine = crab[,2]
+width = crab[,3]
+satell = crab[,4]
+weight = crab[,5]
+y = as.numeric(satell > 0) 
+color = color-1 
+crab.data = data.frame(cbind(color, spine, width, satell, weight, y))
+crab.data
+
+model.weight = glm(y~weight, data = crab.data, family = binomial(link = "logit"))
+summary(model.weight)
+model.weight$coefficients
+```
+#1(b)
+```{r}
+w_1 = 1200
+w_2 = 2440
+w_3 = 5200
+
+#1.2g = 1200g
+pi_1 = model.weight$coefficients[1] + model.weight$coefficients[2] * w_1
+pi_1
+#2.44kg = 2440g
+pi_2 = model.weight$coefficients[1] + model.weight$coefficients[2] * w_2
+pi_2
+#5.20 = 5200g
+pi_3 = model.weight$coefficients[1] + model.weight$coefficients[2] * w_3
+pi_3
+```
+#1.20 is the sample minimun, 2.44 is the sample mean, and 5.2 is the sample maximum.
+
+#1(c)
+```{r}
+p = 0.50
+weight_1 = log(p/(1-p)) - model.weight$coefficients[1]/model.weight$coefficients[2]
+weight_1
+```
+
+#1(d)
+```{r}
+#(i) increase 1kg
+model.weight$coefficients[2]*1000
+#(ii) increase 0.1
+model.weight$coefficients[2]*100
+#(iii) increase 0.58
+model.weight$coefficients[2]*580
+```
+
+#2.4.5(a)
+```{r}
+library(car)
+library(dplyr)
+library(ggplot2)
+challenger <- read.table(file = "challenger.csv", header = TRUE, sep = ",", stringsAsFactors = T , dec=",")
+model.temp = glm(as.factor(challenger$O.ring) ~ as.factor(challenger$Temp), family = binomial(link = "logit"))
+summary(model.temp)
+```
+
+#2.4.5(b)
+```{r}
+model2 = glm(O.ring/Number ~ Temp, data = challenger, family = binomial, weights = Number)
+#pi vs. Temp
+new_challenger <- data.frame(Temp = seq(from = 31, to = 81, by = 1))
+lp.hat <- predict.glm(model2, newdata = new_challenger, type = "link", se.fit = TRUE)
+lp.hat.mean <- lp.hat$fit
+pi.hat <- exp(lp.hat.mean) / (1 + exp(lp.hat.mean))
+plot(new_challenger$Temp, pi.hat, ylim = range(c(0,1)),
+     xlab = "Temperature", ylab = "Predicted Prob of single O-ring failure", 
+     main = "Predicted Pi vs. Temperature", type = 'l', col = 'black', lwd = 2)
+#expected number of failures vs. Temp
+plot(new_challenger$Temp, pi.hat * 6, ylim = range(c(0,6)),
+     xlab = "Temperature", ylab = "Predicted Number of O-ring failures", 
+     main = "Predicted O-ring Failures vs. Temperature", type = 'l', col = 'blue', lwd = 2)
+```
+
+#2.4.5(d)
+```{r}
+  linear.pred<-model.temp$coefficients[1] + model.temp$coefficients[2]*31
+  linear.pred
+  exp(linear.pred)/(1+exp(linear.pred))
+  as.numeric(exp(linear.pred)/(1+exp(linear.pred)))  # Removes label
+  plogis(q = linear.pred)  # This uses the inverse of the CDF of a logistic distribution
+  
+  predict.data<-data.frame(Temp = 31)
+  predict(object = model.temp, newdata = predict.data, type = "link")
+  predict(object = model.temp, newdata = predict.data, type = "response")
+  model.temp$fitted.values[3] 
+```
+
+#2.4.5(e)
+```{r}
+sigmoid = function(x) {1 / (1 + exp(-x))}
+#start with the parameter estimates from our model and our Temp data
+beta0 = model2$coefficients[1]
+beta1 = model2$coefficients[2]
+x <- challenger$Temp
+pi <- sigmoid(beta0 + beta1*x)
+weights <- challenger$Number
+
+sim <- function(){
+  #simulate new O.ring failure counts as binomial random variable with n=6 trials and p=pi probability of success
+  y <- rbinom(n = length(x), size = 6, prob = pi)
+  #fit a new regression model on the simulated O.ring failure counts
+  mod.fit <- glm(y/weights ~ x, family = binomial, weights = weights)
+  beta0.star = mod.fit$coefficients[1]
+  beta1.star = mod.fit$coefficients[2]
+  #use new model to compute predicted probability of O.ring failure at Temp = 31 and 72 degrees
+  pi_star.31degrees <- sigmoid(beta0.star + beta1.star*31)
+  pi_star.72degrees <- sigmoid(beta0.star + beta1.star*72)
+  return(c(pi_star.31degrees,pi_star.72degrees))
+}
+#run simulation 10000 times
+n=10000
+sim_vals <- replicate(n,sim())
+quantile(sim_vals[1,],c(0.05,0.95))
+quantile(sim_vals[2,],c(0.05,0.95))
+```
+
+#2.4.13(a)
+#In this case we use contigency table to interpretate the relationship between first trial and second trial. 
+
+#2.4.13(b)
+```{r}
+c.table<-array(data = c(251, 48, 34, 5), dim = c(2,2), dimnames = list(First = c("made", "missed"),
+             Second = c("made", "missed")))
+bird1 <- as.data.frame(as.table(c.table))
+trials <- aggregate(formula = Freq ~ First, data = bird1, FUN = sum)
+success <- bird1[bird1$Second == "made", ]
+bird2 <- data.frame(First = success$First, success = success$Freq , trials = trials$Freq)
+bird2
+
+model.first.ungrouped = glm(as.factor(bird2$success) ~ as.factor(bird2$First), data = bird2, family = binomial)
+summary(model.first.ungrouped)
+
+```
+#2.4.13(c)
+```{r}
+  OR.hat<-c.table[1,1]*c.table[2,2] / (c.table[2,1]*c.table[1,2])
+  round(OR.hat, 2)
+  round(1/OR.hat, 2)
+
+  alpha<-0.05
+  var.log.or<-1/c.table[1,1] + 1/c.table[1,2] + 1/c.table[2,1] + 1/c.table[2,2]
+  OR.CI<-exp(log(OR.hat) + qnorm(p = c(alpha/2, 1-alpha/2)) *
+        sqrt(var.log.or))
+  round(OR.CI, 2)
+  
+  
+  exp(model.first.ungrouped$coefficients[2])
+  exp(-10*model.first.ungrouped$coefficients[2])
+```
+
+#2.4.13(e)
+#Since one is for logistic regression model and one is for different probabilities.
+
+#2.4.21(a)
+```{r}
+#logit(π) = β0 + β1x
+#logit(π) - β0 = β1x
+#(logit(π) - β0) / β1 = x
+```
+
+#2.4.21(b)
+ 
+
+
+
+
+
+
+
+
+
+
+
+#2.4.22(a)
+```{r}
+Picloram <- read.table(file = "picloram.csv", header = TRUE, sep = ",")
+model.picloram <-glm(formula = kill/total ~ picloram, weight = total, family = 
+    binomial(link = logit), data = Picloram)
+summary(model.picloram)
+```
+
+#2.4.22(b)
+```{r}
+plot(x = Picloram$picloram, y = Picloram$kill/Picloram$total, xlab = "Picloram", ylab = 
+    "Estimated kill rate", col = rep(x = c("black", "blue", "orange"), each = 4), 
+    pch = rep(x = 1:3, each = 4))
+curve(expr = plogis(q = model.picloram$coefficients[1] + model.picloram$coefficients[2]*x), add 
+    = TRUE, col = "red", xlim = c(min(Picloram$picloram), max(Picloram$picloram)))
+legend(x = 3, y = 0.4, legend = c("Rep 1", "Rep 2", "Rep 3"), col = c("black", 
+    "blue", "orange"), pch = c(1,2,3), bty = "n")
+```
+#2.4.22(c)
+```{r}
+plot(x = Picloram$picloram, y = Picloram$kill/Picloram$total, xlab = "Picloram", ylab = 
+    "Estimated kill rate", col = rep(x = c("black", "blue", "orange"), each = 4), 
+    pch = rep(x = 1:3, each = 4))
+curve(expr = plogis(q = model.picloram$coefficients[1] + model.picloram$coefficients[2]*x), add 
+    = TRUE, col = "red", xlim = c(min(Picloram$picloram), max(Picloram$picloram)))
+legend(x = 3, y = 0.4, legend = c("Rep 1", "Rep 2", "Rep 3"), col = c("black", 
+    "blue", "orange"), pch = c(1,2,3), bty = "n")
+pi0<-0.9
+LD<-(log(pi0/(1-pi0)) - model.picloram$coefficients[1])/model.picloram$coefficients[2]
+as.numeric(LD)
+
+segments(x0 = -1, y0 = pi0, x1 = LD, y1 = pi0, lty = "dashed")
+segments(x0 = LD, y0 = -1, x1 = LD, y1 = pi0, lty = "dashed")
+
+```
+
+#2.4.22(d)
+```{r}
+root.func <- function(x, model.picloram.obj, pi0, alpha) { beta.hat <- model.picloram.obj$coefficients
+cov.mat <- vcov(model.picloram.obj)
+var.den <- cov.mat[1,1] + x^2*cov.mat[2,2] +
+2*x*cov.mat[1,2]
+abs(beta.hat[1] + beta.hat[2]*x - log(pi0/(1-pi0))) /
+sqrt(var.den) - qnorm(1-alpha/2) }
+lower <- uniroot(f = root.func, interval = c(min(Picloram$picloram), LD), model.picloram.obj = model.picloram, pi0 = 0.9, alpha = 0.05)
+lower # lower$root contains the lower bound
+upper <- uniroot(f = root.func, interval = c(LD, max(Picloram$picloram)), model.picloram.obj = model.picloram, pi0 = 0.9, alpha = 0.05)
+upper # upper$root contains the upper bound
+```
+
+#2.4.22(e)
+#According to previous question, we would prefer 2.45 dosage in this case since we are 95% confident that this is a safe choice. 
+
+#2.4.22(f)
+#1) There are n identical trials. 2) There are two possible outcomes for each trial. 3) The trials are independent of each other. 4) The probability of success remains constant for each trial. 5) The random variable of interest W is the number of successes.

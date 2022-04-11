@@ -1,0 +1,166 @@
+---
+title: "HW11_Sabrina Liu"
+output: html_document
+---
+
+#1(a)
+#According to graph,the estimated model equation is ln(π/(1 − π) = −7.0 + 0.1A + 1.2S + 0.3R + 0.2R × S.
+
+#1)The estimated odds ratio for having cancer comparing R = 1 versus R = 0 given S = 0: Odds ˆ (R = 1|S = 0) / Odds ˆ (R = 0|S = 0) = exp(−7.0 + 0.1A + 0.3) / exp(−7.0 + 0.1A) = exp(0.3) = exp(βˆR) = 1.35
+
+#We can conclude that for nonsmokers, the odds for squamous cell esophageal cancer are 35% higher for black than for white people.
+
+#2)The estimated odds ratio for having cancer comparing R = 1 versus R = 0 given S = 1: Odds ˆ (R = 1|S = 1) / Odds ˆ (R = 0|S = 1) = exp(−7.0 + 0.1A + 0.3 + 1.2 + 0.2)/ exp(−7.0 + 0.1A + 1.2) = exp(0.3+0.2) = exp(βˆR+βˆR×S) = 1.65
+
+#We can conclude that for smokers, the odds for squamous cell esophageal cancer are 65% higher for black than for white people.
+
+#3)The estimated odds ratio for having cancer comparing S = 1 versus S = 0 given R = 0: Odds ˆ (S = 1|R = 0) / Odds ˆ (S = 0|R = 0) = exp(−7.0 + 0.1A + 1.2) / exp(−7.0 + 0.1A) = exp(1.2) = exp(βˆS) = 3.32
+
+#We can conclude that for white people, the odds for squamous cell esophageal cancer are 232% higher for smokers than for nonsmokers.
+
+#4)The estimated odds ratio for having cancer comparing S = 1 versus S = 0 given R = 1: Odds ˆ (S = 1|R = 1) / Odds ˆ (S = 0|R = 1) = exp(−7.0 + 0.1A + 1.2 + 0.3 + 0.2) / exp(−7.0 + 0.1A + 0.3) = exp(1.2+0.2) = exp(βˆS+βˆR×S) = 4.01
+
+#We can conclude that for black people, the odds for squamous cell esophageal cancer are 301% higher for smoker than for non-smokers.
+
+#1(b)
+#According to part(a), we can see that e^βˆR = e^0.30 = 1.65. There is65% increase in the odds for the cancer for black over white people, if S = 0 (for nonsmokers); e^βˆS = e^1.20 = 3.32, 232% increase in the odds for the cancer for smokers over nonsmokers,if R = 0 (for white people). 
+
+#1(c)
+#The estimated model equation is ln(π/(1 − π) = −7.0 + 0.1A + 1.2S + 0.3R + 0.2R × S + 0.4A x R. 
+
+#2(a)
+```{r}
+D <- c(45,15,40,83,90,25,35,65,95,35,75,45,50,75,30,25,20,60,70,30,60,61,65,15,20,45,15,25,15,30,40,15,135,20,40)
+T <- c(0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,1,1,0,0,0,0,1,1,0,1,0,1,0,0,1,1,1,1)
+Y <- c(0,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,0,1,0,0,1,0,1,0,1,1,0,1,0,0)
+df <- data.frame(D,T,Y)
+df
+mod.fit <- glm(Y~D+T, data=df, family=binomial)
+summary(mod.fit)
+```
+#2(b)
+#According to the summary, we get that when H0: beta1(D) = 0, the p-value is 0.00931, which D is important predictor of probabilty of the odds of being a patient with general anesthesia experienced a sore throat on waking. Patients who use a laryngeal mask airway are more likely to experience a sore throat.
+
+#2(c)
+```{r}
+mod.fit2 <- glm(Y~D+T+D:T, data=df, family=binomial)
+summary(mod.fit2)
+exp(0.10308)
+```
+#1)For tracheal tube T=1: logit(P-hat(Y=1))=-4.42245+0.10308(D)
+#2)For laryngeal mask airway T=0: logit(P-hat(Y=1))=0.04979+0.02848(D)
+#Therefore,  we can say for a one-unit increase in duration of the surgery, we expect to see about 11% (exp(0.10308)=1.10858) increase in the odds of being a patient with general anesthesia experienced a sore throat on waking, given T=1.
+
+#2(d)
+```{r}
+anova(mod.fit, mod.fit2, test="Chisq")
+```
+
+#P-value = 0.1777 > 0.05 which means the data do not indicate a need for an interaction term in this case. 
+
+#2.4.12(a)
+```{r}
+library(plyr)
+CT2 <- read.table(file = "aptima_combo.csv", header = TRUE, sep = ",")
+CT2
+
+CT2$Disease  <- as.factor(CT2$Disease)
+mod.fit<-glm(formula = Disease ~ Gender + Specimen + Symptoms_Status, family = binomial(link = logit), data = CT2)
+mod.fit 
+
+CT2$gender.numb <- ifelse(test = CT2$Gender == "Female", yes = 0, no = 1)
+CT2$sensitivity <- CT2$True_positive/CT2$Sample_size
+plot(x = CT2$gender.numb, y = CT2$sensitivity, xlab =
+"Gender", ylab = "Sensitivity", type = "n", xaxt = "n") 
+axis(side = 1, at = c(0,1), labels = c("Female", "Male")) 
+Swab.Symptomatic <- CT2$Disease == "Chlamydia" &
+CT2$Symptoms_Status == "Symptomatic" 
+lines(x = CT2$gender.numb[Swab.Symptomatic],
+CT2$sensitivity[Swab.Symptomatic], type = "o", lty =
+"solid", col = "black")
+```
+
+#2.4.12(b)
+```{r}
+CT2$gender.numb <- ifelse(test = CT2$Gender == "Female", yes = 0, no = 1)
+CT2$sensitivity <- CT2$True_positive/CT2$Sample_size
+plot(x = CT2$gender.numb, y = CT2$sensitivity, xlab =
+"Gender", ylab = "Sensitivity", type = "n", xaxt = "n") 
+axis(side = 1, at = c(0,1), labels = c("Female", "Male")) 
+Swab.Symptomatic <- CT2$Disease == "Gonorrhea" &
+CT2$Symptoms_Status == "Symptomatic" 
+lines(x = CT2$gender.numb[Swab.Symptomatic],
+CT2$sensitivity[Swab.Symptomatic], type = "o", lty =
+"solid", col = "black")
+```
+#We can realaze the level of sensetivity was more affected by Gonorrhea. The gender difference was also more affected by Gonorrhea. 
+
+#2.4.20(a)
+```{r}
+placekick<-read.table(file = "Placekick.csv", header = TRUE, sep = ",")
+head(placekick)
+tail(placekick)
+mod.fit.Ho<-glm(formula = good ~ distance + wind, family = binomial(link = logit), data = placekick)
+  mod.fit.Ha<-glm(formula = good ~ distance + wind + distance:wind, family = binomial(link = logit), data = placekick)
+  summary(mod.fit.Ha)
+  anova(mod.fit.Ho, mod.fit.Ha, test = "Chisq")
+  library(package = car)  # Would need this if it has not already been used.
+  Anova(mod.fit.Ha, test = "LR")  # Simpler way for the test
+  Anova(mod.fit.Ho, test = "LR")
+library(package = multcomp)
+K <- matrix(data = c(0, 0, 1, 1*20), nrow = 1, ncol = 4,byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+ci.log.OR <- confint(object = linear.combo, calpha = qnorm(0.975))
+data.frame(estimate = exp(-ci.log.OR$confint[1]), lower = exp(-ci.log.OR$confint[3]), upper = exp(-ci.log.OR$confint[2]))
+```
+
+#2.4.20(b)
+#Multiple comparisons use the glht function in the multcomp package, so that c(0,0,0,20) can be compared with the amount of 0 and 20.The usage is glht(model = mod.fit.Ha, linfct = K) to get a glht model. If you use summary(glht), you can get a pairwise p value consistent with mod.fit.HA (parameter linfct is linear Hypothetical specification, mcp is a function of multiple comparisons, returning a control group)
+
+#2.4.20(c)
+```{r}
+#for 30
+K <- matrix(data = c(0, 0, 1, 1*30), nrow = 1, ncol = 4,byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+ci.log.OR <- confint(object = linear.combo, calpha = qnorm(0.975))
+data.frame(estimate = exp(-ci.log.OR$confint[1]), lower = exp(-ci.log.OR$confint[3]), upper = exp(-ci.log.OR$confint[2]))
+
+#for 40
+K <- matrix(data = c(0, 0, 1, 1*40), nrow = 1, ncol = 4,byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+ci.log.OR <- confint(object = linear.combo, calpha = qnorm(0.975))
+data.frame(estimate = exp(-ci.log.OR$confint[1]), lower = exp(-ci.log.OR$confint[3]), upper = exp(-ci.log.OR$confint[2]))
+
+#for 50
+K <- matrix(data = c(0, 0, 1, 1*50), nrow = 1, ncol = 4,byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+ci.log.OR <- confint(object = linear.combo, calpha = qnorm(0.975))
+data.frame(estimate = exp(-ci.log.OR$confint[1]), lower = exp(-ci.log.OR$confint[3]), upper = exp(-ci.log.OR$confint[2]))
+
+#for 60
+K <- matrix(data = c(0, 0, 1, 1*60), nrow = 1, ncol = 4,byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+ci.log.OR <- confint(object = linear.combo, calpha = qnorm(0.975))
+data.frame(estimate = exp(-ci.log.OR$confint[1]), lower = exp(-ci.log.OR$confint[3]), upper = exp(-ci.log.OR$confint[2]))
+```
+
+#2.4.20(d)
+```{r}
+K <- matrix(data = c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1), nrow = 4, ncol = 4, byrow = TRUE)
+linear.combo <- glht(model = mod.fit.Ha, linfct = K) 
+summary(object = linear.combo, test = adjusted(type = "none"))
+```
+
+#2.4.20(e)
+```{r}
+confint(object = linear.combo)
+```
+#The 95%-confidence interval for is given by (4.90354, 6.46482) as the the first contrast is zero or not, and the average value of μ1 and μ2 as 5.68418 and we are rejecting the null hypothesis because the p-value is <2e-16. The 95%-confidence interval for is given by (-0.13024, -0.09026) as the the second contrast is zero or not, and the average value of μ1 and μ2 as -0.11025 and we are rejecting the null hypothesis because the p-value is <2e-16. The 95%-confidence interval for is given by (-1.39217, 6.33212) as the the first contrast is zero or not, and the average value of μ1 and μ2 as 2.46997 and we are not rejecting the null hypothesis because the p-value is 0.1373. The 95%-confidence interval for is given by (-0.18435, 0.01688) as the the second contrast is zero or not, and the average value of μ1 and μ2 as -0.08374 and we are rejecting the null hypothesis because the p-value is 0.0531.  
+
+#2.4.32
+#pi/( 1−pi)=e^𝛽1X1+𝛽2X2+𝛽3X3+𝛽4X1X2+𝛽5X1X3+𝛽6X2X3+𝛽7X1X2X3
+#then we could set X2 = E(X2) and X3 = E(X3). 
+#1)When X1 = 1, pi/(1−pi)=e^𝛽1+𝛽2E(X2)+𝛽3E(X3)+𝛽4E(X2)+𝛽5E(X3)+𝛽6E(X2)E(X3)+𝛽7E(X2)E(X3)
+#2)When x1 = 0, pi/(1−pi)=e^𝛽2E(X2)+𝛽3E(X3)+𝛽6E(X2)E(X3)
+#Therefore, we could get the odds ratio = e^𝛽1+𝛽4E(X2)+𝛽5E(X3)+𝛽7E(X2)E(X3)
+#we can notice that this estimator do not contain any x1

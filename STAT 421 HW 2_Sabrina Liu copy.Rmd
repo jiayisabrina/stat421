@@ -1,0 +1,888 @@
+#3(a)
+
+#1. There are n identical trials, the same action is measured.
+#2. There are two outcomes for each trial: 1) land on base; 2) not land on base.
+#3. The trials are independent, which the outcome of each trial does not affect other trials. 
+#4. The probability of success remains constant in each trials.
+#5. The data of interest is the number of successes, which is land on the base. 
+
+#3 (b)
+```{r}
+w = 39
+n = 100 
+alpha = 0.05
+pi.hat = w/n
+```
+#Wald interval
+```{r}
+var.wald = pi.hat*(1-pi.hat)/n
+lower = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+round(c(lower, upper), 4)
+round(pi.hat + qnorm(p = c(alpha/2, 1-alpha/2))*sqrt(var.wald), 4) #output in one line
+```
+
+#Wilson interval
+```{r}
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+pi.tilde
+
+round(pi.tilde + (qnorm(c(alpha/2, 1-alpha/2))*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n)), 4)
+
+library(binom) #Package has methods for computing many types of CIs for pi
+wilson.ci = binom.confint(x = w, n = n, conf.level = 1-alpha, methods = "wilson")
+wilson.ci #Verifying our above formula for the Wilson CI is correct!
+```
+
+#Agresti-Coull interval
+```{r}
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+round(pi.tilde + qnorm(p = c(alpha/2, 1-alpha/2))*sqrt(var.ac), 4)
+
+ac.ci = binom.confint(x = w, n = n, conf.level = 1-alpha, methods = "ac")
+ac.ci #check
+```
+
+#Clopper-Pearson interval
+```{r}
+CP.ci.lower = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+CP.ci.upper = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+CP.ci.limits = round(c(CP.ci.lower, CP.ci.upper), 4)
+CP.ci.limits
+library(binom) #check using a function
+binom.confint(x = w, n = n, conf.level = 1-alpha, methods = "exact")
+```
+
+#3(c)
+```{r}
+n = 100
+w = 39 
+alpha = 0.05
+binom.likelihood = function(pi, w, n) dbinom(w, n, pi)
+
+#Clopper-Pearson interval
+
+CP.ci.lower = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+CP.ci.upper = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+CP.ci.limits = round(c(CP.ci.lower, CP.ci.upper), 4)
+CP.ci.limits
+
+library(binom) #check using a function
+binom.confint(x = w, n = n, conf.level = 1-alpha, methods = "exact")
+
+
+##Evaluate intervals
+n = 30
+alpha = 0.05 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+
+```
+
+1) The Agresti-Coull interval does a much better job than the Wald with its true confi- dence level usually between 0.93 and 0.98. For values of π close to 0 or 1, the interval can be very conservative.
+2) The Agresti-Coull interval performs a little better than the Wilson interval with its true confidence level generally between 0.93 and 0.96 or 0.97, because the sample size is greater than 40. 
+3) The Clopper-Pearson interval has a true confidence level at or above the stated level, where it is generally oscillating between 0.95 and 0.98. For values of π close to 0 or 1, the interval can be very conservative.
+4) Therefore, I would consider the Agresti-Coull interval performs the best in this case. 
+
+#6(a)
+The Clopper–Pearson interval is an exact interval since it is based directly on the binomial distribution rather than any approximation to the binomial distribution. This interval never has less than the nominal coverage for any population proportion, but that means that it is usually conservative. According to the question, the purpose of this problem is to calculate confidence intervals for sensitivity (Se) and specificity (Sp) accuracy measures.  
+
+#6(b)
+```{r}
+#For Se
+n = 190 + 7
+w = 190
+alpha  = 0.05
+CP.ci.lower = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+CP.ci.upper = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+CP.ci.limits = round(c(CP.ci.lower, CP.ci.upper), 4)
+CP.ci.limits
+
+#For Sq
+n = 464 + 15
+w = 464
+alpha  = 0.05
+CP.ci.lower = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+CP.ci.upper = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+CP.ci.limits = round(c(CP.ci.lower, CP.ci.upper), 4)
+CP.ci.limits
+```
+
+#6(c)
+```{r}
+aptima <- read.table(file = "Aptima_combo.csv", header = TRUE, sep = ",")
+aptima$s_e_lower <- binom.confint(aptima$True_positive, aptima$True_positive + aptima$False_negative, 0.95, "exact")$lower
+aptima$s_e_lower <- binom.confint(aptima$True_positive, aptima$True_positive + aptima$False_negative, 0.95, "exact")$upper
+aptima$s_e_lower <- binom.confint(aptima$True_negative, aptima$True_negative + aptima$False_positive, 0.95, "exact")$lower
+aptima$s_e_lower <- binom.confint(aptima$True_negative, aptima$True_negative + aptima$False_positive, 0.95, "exact")$upper
+aptima
+```
+
+#12
+```{r}
+# n = 20, alpha = 0.05
+n = 20
+alpha = 0.05 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+```{r}
+# n = 50, alpha = 0.05
+n = 50
+alpha = 0.05 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+```{r}
+# n = 20, alpha = 0.01
+n = 20
+alpha = 0.01 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+```{r}
+# n = 20, alpha = 0.01
+n = 50
+alpha = 0.01 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+#12(a)
+In Section 1.3 Excercise 3, The Agresti-Coull interval does a much better job than the Wald with its true confi- dence level usually between 0.93 and 0.98. For values of π close to 0 or 1, the interval can be very conservative. The Wilson interval performs a little better than the Agresti-Coull interval with its true confidence level generally between 0.93 and 0.96 or 0.97; however, for very extreme π, it can be very liberal. The Clopper-Pearson interval has a true confidence level at or above the stated level, where it is generally oscillating between 0.95 and 0.98. For values of π close to 0 or 1, the interval can be very conservative. 
+
+#12(b) 
+As the sample size n increases, the length of the interval decreases. 
+
+#12(c)
+As the confidence level decreases, the length of the interval decreases. (For example, that for a 95% interval, z = 1.96, whereas for a 90% interval, z = 1.645.) 
+
+#13 (a)
+```{r}
+w = 4
+n = 10
+alpha = 0.05
+binom.likelihood = function(pi, w, n) dbinom(w, n, pi)
+LR.ci.lower = ifelse(w==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = w, n = n) - binom.likelihood(w/n, w = w, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,w/n))$root) 
+LR.ci.upper = ifelse(w==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = w, n = n) - binom.likelihood(w/n, w = w, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(w/n,1))$root)
+LRT.ci.limits = round(c(LR.ci.lower, LR.ci.upper), 4)
+LRT.ci.limits
+```
+
+#13 (b)
+```{r}
+n = 40
+alpha = 0.05 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+pis = seq(from = 0.001, to = 0.999, by = 0.0005)
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+#13(c)
+1) The Wald interval tends to be the farthest from the 0.95 which is the most frequently happening based in the Wald plot. Therefore, the true confidence level is too low for it to be consider on the plot if we will set the π up to its extreme values.
+2) The Agresti-Coull interval on the other hand is much better compare to the Wald interval since its true confidence level was primarily between 0.92 and 0.99. Therefore, having values of π that varies from 0.001 to 0.999 by 0.0005 which is really close to 0 or 1, the confidence interval can be very conservative.
+3) The Wilson interval compare to Agresti-Coull interval performs a little better with its true confidence level lies between 0.93 and 0.98. But notice that when the value of π will get into extreme value, the true confidence level can be very progressive.
+4) The Clopper-Pearson interval tends to have its true confidence level at or above the stated level which is 0.95. Therefore, upon observation, its true confidence level was primarily between 0.95 and 0.98. We can conclude that having values of π that varies from 0.001 to 0.999 by 0.0005 which is really close to 0 or 1, the confidence interval can be very conservative.
+
+#15(a)
+We would like our confidence interval to be small enought. If we have a large confidence interval may not help us to analyze our data. Moreover, if the width is small, we could get information about where the estimated points may lie. Otherwise, if we contain a large interval which has all the actual value lies , it will be difficult for us to understand the whole plot. 
+
+#15(b)
+```{r}
+n = 40
+alphha = 0.05
+pi.hat = 0.16
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+lengths.wald
+```
+
+#15(c)
+```{r}
+n = 40
+alpha = 0.05 #95% on the top
+w = 0:n
+
+#construct Wald intervals
+pi.hat = w/n
+var.wald = pi.hat*(1-pi.hat)/n
+lower.wald = pi.hat - qnorm(1-alpha/2)*sqrt(var.wald)
+upper.wald = pi.hat + qnorm(1-alpha/2)*sqrt(var.wald)
+lengths.wald = upper.wald-lower.wald
+
+#construct Wilson intervals
+pi.tilde = (w + qnorm(1-alpha/2)^2/2)/(n + qnorm(1-alpha/2)^2)
+lower.wilson = pi.tilde - (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+upper.wilson = pi.tilde + (qnorm(1-alpha/2)*sqrt(n)/(n+qnorm(1-alpha/2)^2))*sqrt(pi.hat*(1-pi.hat) + qnorm(1-alpha/2)^2/(4*n))
+lengths.wilson = upper.wilson - lower.wilson
+
+#construct Agresti-Coull intervals
+var.ac = pi.tilde*(1-pi.tilde)/(n + qnorm(1-alpha/2)^2)
+lower.ac = pi.tilde - qnorm(1-alpha/2)*sqrt(var.ac)
+upper.ac = pi.tilde + qnorm(1-alpha/2)*sqrt(var.ac)
+lengths.ac = upper.ac - lower.ac
+
+#construct LRT intervals
+lower.lrt = c()
+upper.lrt = c()
+for (i in w)
+{
+    lower.lrt[i+1] = ifelse(i==0, yes = 0, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(0,i/n))$root)
+    upper.lrt[i+1] = ifelse(i==n, yes = 1, uniroot(function(pi) binom.likelihood(pi, w = i, n = n) - binom.likelihood(i/n, w = i, n = n)*exp(-0.5*qchisq(1-alpha,1)), interval=c(i/n,1))$root)
+}
+lengths.lrt = upper.lrt-lower.lrt
+
+
+#construct Clopper-Pearson intervals
+lower.CP = ifelse(w==0, 0, qbeta(alpha/2, w, n - w + 1))
+upper.CP = ifelse(w==n, 1, qbeta(1-alpha/2, w+1, n-w))
+lengths.CP = upper.CP-lower.CP
+
+#Generate a sequence of pi values to evaluate coverage probabilities and expected lengths for
+pi.seq = seq(from = 0.001, to = 0.999, by = 0.0005)
+
+#Save true confidence levels and expected lenghts in two separate matrices
+save.true.conf = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+save.exp.lengths = matrix(data = NA, nrow = length(pi.seq), ncol = 6)
+
+#Loop over each pi in pi.seq, calculating true coverage probabilities and expected lengths for each procedure for each pi
+
+for(j in 1:length(pi.seq)) {
+    pi = pi.seq[j]
+    pmf = dbinom(x = w, size = n, prob = pi)
+    
+    ind.wald = ifelse(pi > lower.wald, yes = ifelse(pi < upper.wald, 1, 0), 0) #logical. It indicates which intervals contain the given pi value
+    wald.c = sum(ind.wald*pmf) #coverage prob
+    wald.l = sum(lengths.wald*pmf) #expected length
+    
+    ind.wilson = ifelse(pi > lower.wilson, yes = ifelse(pi < upper.wilson, 1, 0), 0)
+    wilson.c = sum(ind.wilson*pmf)
+    wilson.l = sum(lengths.wilson*pmf)
+    
+    ind.ac = ifelse(pi > lower.ac, yes = ifelse(pi < upper.ac, 1, 0), 0)
+    ac.c = sum(ind.ac*pmf)
+    ac.l = sum(lengths.ac*pmf)
+    
+    ind.lrt = ifelse(pi > lower.lrt, yes = ifelse(pi < upper.lrt, 1, 0), 0)
+    lrt.c = sum(ind.lrt*pmf)
+    lrt.l = sum(lengths.lrt*pmf)
+    
+    ind.CP = ifelse(pi>lower.CP, yes = ifelse(pi < upper.CP, 1, 0), 0)
+    CP.c = sum(ind.CP*pmf)
+    CP.l = sum(lengths.CP*pmf)
+    
+    save.true.conf[j,] = c(pi, wald.c, wilson.c, ac.c, lrt.c, CP.c)
+    save.exp.lengths[j,] = c(pi, wald.l, wilson.l, ac.l, lrt.l, CP.l)
+    
+}
+
+par(mfrow = c(2,3))
+plot(x = save.true.conf[,1], y = save.true.conf[,2], main = "Wald", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,3], main = "Wilson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,4], main = "Agresti-Coull", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,5], main = "Likelihood Ratio", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.true.conf[,1], y = save.true.conf[,6], main = "Clopper-Pearson", xlab = expression(pi), ylab = "True confidence level", type = "l", ylim = c(0.80, 1))
+abline(h = 1-alpha, lty = "dotted")
+
+plot(x = save.exp.lengths[,1], y = save.exp.lengths[,2], main = "Expected Lengths", xlab = expression(pi), ylab = "Expected length", type = "l", col = 1, ylim = c(0, 0.6))
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,3], type = "l", col = 2)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,4], type = "l", col = 3)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,5], type = "l", col = 4)
+lines(x = save.exp.lengths[,1], y = save.exp.lengths[,6], type = "l", col = 5)
+legend("topleft", legend = c("Wald", "Wilson", "Agresti-Coull", "Likelihood Ratio", "Clopper-Pearson"), col = 1:5, lty = 1)
+```
+
+#15(d)
+1) The Agresti-Coull interval does a much better job than the Wald with its true confi- dence level usually between 0.93 and 0.98. For values of π close to 0 or 1, the interval can be very conservative.
+2) The Wilson interval performs a little better than the Agresti-Coull interval with its true confidence level generally between 0.93 and 0.97, because the sample size is equal to 40 which is smaller than 100. 
+3) The Clopper-Pearson interval has a true confidence level at or above the stated level, where it is generally oscillating between 0.95 and 0.98. For values of π close to 0 or 1, the interval can be very conservative.
+4) Therefore, I would consider the Wilson interval performs the best in this case. 
+
+#15(e)
+1) In the first step, for each component random variable being considered, we should select a random value that lies into the distribution we want to analyze. 
+2) In the second step, determine how its data are distributed.
+3) We should create a very large, random data set for each input. A random value from the distribution function for each parameter is selected and entered into the calculation. To calculates results over and over, each time using a different set of random values from the probability functions.
+4) With the simulated data in place, we can use the related formula to calculate simulated outcomes, which is we take the average of the previous expected length. 

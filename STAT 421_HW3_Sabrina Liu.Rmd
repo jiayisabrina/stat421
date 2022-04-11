@@ -1,0 +1,1296 @@
+---
+title: "STAT 421_HW3_Sabrina Liu"
+output:
+  html_document:
+    df_print: paged
+---
+#1 
+We cannot compare the proportions using inferential methods for independent binomial samples.The reasons are the following:
+We can use the binomial distribution to find the probability of getting a certain number of successes, like successful basketball shots, out of a fixed number of trials. Categories are mutually exclusive when objects can be placed into one category and no other. However,in this case, a person can believe in ghosts and also believe in astrology, not one or the other, which means this not mutually exclusive categories. Therefore, we cannot use inferential methods in this case. 
+
+#17(a)
+```{r}
+c.table<-array(data = c(22,10,4,6), dim = c(2,2), dimnames = list(Strategy = c("No time-out", "time-out"), Field_goal =  c("success", "Failure")))
+c.table
+```
+
+```{r}
+# Create the table of sample proportions
+rowTotals = rowSums(c.table) #contains n1 and n2
+n1 = rowTotals[1]
+n2 = rowTotals[2]
+
+pi.hat.table<-c.table/rowTotals
+pi.hat.table
+```
+
+```{r}
+## Confidence intervals for difference of proportions
+
+alpha<-0.05
+pi.hat1<-pi.hat.table[1,1]
+pi.hat2<-pi.hat.table[2,1]
+```
+
+```{r}
+# Wald
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+
+# Calculate Wald interval using function in PropCIs package
+library(PropCIs)
+w1 = c.table[1,1]
+w2 = c.table[2,1]
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald") #The 'sample estimates' attribute is actually the difference in proportions, not just the proportion from the "No time-out" group
+```
+
+```{r}
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+
+#Calculate Agresti-Caffo interval using function in PropCIs package
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "AC")
+```
+
+#17(b)
+```{r}
+##Score test for equality of proportions
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z0 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z0
+```
+
+```{r}
+P.value = pnorm(z0, lower.tail=F) 
+P.value 
+```
+
+```{r}
+#Calculate the score test using prop.test function
+prop.test(x = c.table, conf.level = 0.95, alternative = 'greater', correct = FALSE) 
+```
+
+```{r}
+#Calculate the score test using the chisq.test function
+chisq.test(x = c.table, correct = FALSE) 
+```
+
+#17(e)
+Since the P-value is 0.0511141 which is greater than 0.05, we cannot reject the null hypothesis. There are not sufficient evidence that the proportions are different, which is icing the kicker is a good strategy to follow. 
+
+#18(a)
+```{r}
+HIV.table<-array(data = c(135,15,434,9), dim = c(2,2), dimnames = list(Strategy = c("Never", "Ever"), Field_goal =  c("Positive", "Negative")))
+HIV.table
+```
+
+```{r}
+# Create the table of sample proportions
+rowTotals = rowSums(HIV.table) #contains n1 and n2
+n1 = rowTotals[1]
+n2 = rowTotals[2]
+
+pi.hat.table<-HIV.table/rowTotals
+pi.hat.table
+```
+
+```{r}
+## Confidence intervals for difference of proportions
+
+alpha<-0.05
+pi.hat1<-pi.hat.table[1,1]
+pi.hat2<-pi.hat.table[2,1]
+```
+
+```{r}
+# Wald
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+
+# Calculate Wald interval using function in PropCIs package
+library(PropCIs)
+w1 = HIV.table[1,1]
+w2 = HIV.table[2,1]
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald") #The 'sample estimates' attribute is actually the difference in proportions, not just the proportion from the "No time-out" group
+```
+
+```{r}
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+
+#Calculate Agresti-Caffo interval using function in PropCIs package
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "AC")
+```
+
+#17(b)
+```{r}
+##Score test for equality of proportions
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z1 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z1
+```
+
+```{r}
+P.value = pnorm(z1, lower.tail=F) 
+P.value 
+```
+
+```{r}
+#Calculate the score test using prop.test function
+prop.test(x = HIV.table, conf.level = 0.95, alternative = 'greater', correct = FALSE) 
+```
+
+```{r}
+#Calculate the score test using the chisq.test function
+chisq.test(x = HIV.table, correct = FALSE) 
+```
+
+#18(d)
+Since the P-value is 1- 0.9999907 = 9.3e-06 which is smaller than 0.05, we can reject the null hypothesis. There are sufficient evidence that the proportions are different, which is condom use helps to prevent HIV transmission. 
+
+#22
+```{r}
+English.table<-array(data = c(118, 155, 211-118, 206-155), dim = c(2,2), dimnames = list(Student = c("Not Native", "Native"),
+Humorous = c("Yes", "No"))) 
+English.table
+```
+
+```{r}
+# Create the table of sample proportions
+rowTotals = rowSums(English.table) #contains n1 and n2
+n1 = rowTotals[1]
+n2 = rowTotals[2]
+
+pi.hat.table<-English.table/rowTotals
+pi.hat.table
+```
+
+```{r}
+alpha<-0.05
+pi.hat1<-pi.hat.table[1,1]
+pi.hat2<-pi.hat.table[2,1]
+```
+
+```{r}
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+
+# Calculate Wald interval using function in PropCIs package
+library(PropCIs)
+w1 = English.table[1,1]
+w2 = English.table[2,1]
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald")
+```
+
+```{r}
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+
+#Calculate Agresti-Caffo interval using function in PropCIs package
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "AC")
+```
+
+```{r}
+##Score test for equality of proportions
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z2 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z2
+```
+
+```{r}
+P.value = pnorm(z2, lower.tail=F) 
+P.value 
+```
+
+```{r}
+#Calculate the score test using prop.test function
+prop.test(x = English.table, conf.level = 0.95, alternative = 'greater', correct = FALSE) 
+```
+
+```{r}
+#Calculate the score test using the chisq.test function
+chisq.test(x = c.table, correct = FALSE)
+```
+
+Since the P-value is 1- 0.9999832 = 1.68e-05 which is smaller than 0.05, we can reject the null hypothesis. There are sufficient evidence that the proportions are different. 
+
+#31(a)
+According to Placebo research, the Agresti-Caffo interval resulted in essentially the same interval as the Wald for the aspirin/MI data. This is due to the fact that the sample size is large enough for the normal approximation to be valid for Wald, so they produce similar results. However, in excercise 17, the sample size is small, so the two intervals may differ. The Wald interval tends to be too liberal. The Agresti-Caffo interval attains it nominal confidence level over a wider range of pairs of sample sizes and success probabilities, but can be conservative for pi values near the endpoints and small sample sizes.
+
+#31(b)
+# to increase 10
+```{r}
+# Initial settings
+alpha<-0.05
+pi1<-0.2
+pi2<-0.4
+n1<-30
+n2<-30
+numb.bin.samples<-100  # Number of binomial samples
+
+
+###########################################################################
+# Estimated true confidence level
+
+  # Simulate w1 and w2
+  set.seed(2349)
+  w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+  w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+  pi.hat1<-w1/n1
+  pi.hat2<-w2/n2
+
+  # Wald
+  var.wald<-pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2
+  lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+
+  # Intervals 1-5
+  data.frame(w1, w2, lower, upper)[1:5,]
+
+  # Calculate estimated true confidence level
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  save[1:5]
+  true.conf<-mean(save)
+  round(true.conf,4)
+
+  # Agresti-Caffo
+  pi.tilde1<-(w1+1)/(n1+2)
+  pi.tilde2<-(w2+1)/(n2+2)
+  var.AC<-pi.tilde1*(1-pi.tilde1) / (n1+2) + pi.tilde2*(1-pi.tilde2) / (n2+2)
+  lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  save.AC[1:10]
+  true.conf.AC<-mean(save.AC)
+  round(true.conf.AC,4)
+
+
+
+###########################################################################
+# Estimated true confidence level holding pi2 fixed at 0.3
+
+  numb.bin.samples<-1000  # Number of binomial samples - changed to reduce simulation variability (makes plot look nicer)
+
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  set.seed(2114)
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+   
+    w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+    w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+    pi.hat1<-w1/n1
+    pi.hat2<-w2/n2
+
+    # Wald
+    lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-mean(save)
+
+    # Agresti-Caffo
+    pi.tilde1<-(w1+1)/(n1+2)
+    pi.tilde2<-(w2+1)/(n2+2)
+    lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-mean(save.AC)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "Estimated true confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+
+
+
+###########################################################################
+# True confidence level
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+  
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-(0:n1)/n1
+  pi.hat2<-(0:n2)/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+ 
+  # Find joint probability for w1 and w2
+  prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+  prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+  prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+  pmf<-prob.all$prob.w1*prob.all$prob.w2
+  
+  # Joint probability of observing w1 and w2 (i.e., P(W1 = w1, W2 = w2))
+  head(data.frame(w.all, pmf = round(pmf,4)))
+  tail(data.frame(w.all, pmf = round(pmf,4)))
+  
+  # Wald
+  var.wald<-pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  sum(save*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,] #Example
+  
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  var.ac<-pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+          pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  sum(save.AC*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,]  #Example
+
+  
+  
+###########################################################################
+# True confidence level holding pi2 fixed
+ 
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-0:n1/n1
+  pi.hat2<-0:n2/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+  
+  # Wald
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+
+
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+
+    # Find joint probability for w1 and w2
+    prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+    prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+    prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+    pmf<-prob.all$prob.w1*prob.all$prob.w2
+   
+    # Wald
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-sum(save*pmf)
+
+    # Agresti-Caffo
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-sum(save.AC*pmf)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure1.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+  # dev.off()  # Create plot for book
+
+  # Black-and-white version of plot
+  # pdf(file = "c:\\figures\\Figure1.4BW.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "black")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "black")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("black", "black"))
+  # dev.off()  # Create plot for book
+
+```
+  
+#to decrease 10
+
+```{r}
+# Initial settings
+alpha<-0.05
+pi1<-0.2
+pi2<-0.4
+n1<-10
+n2<-10
+numb.bin.samples<-100  # Number of binomial samples
+
+
+###########################################################################
+# Estimated true confidence level
+
+  # Simulate w1 and w2
+  set.seed(2349)
+  w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+  w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+  pi.hat1<-w1/n1
+  pi.hat2<-w2/n2
+
+  # Wald
+  var.wald<-pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2
+  lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+
+  # Intervals 1-5
+  data.frame(w1, w2, lower, upper)[1:5,]
+
+  # Calculate estimated true confidence level
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  save[1:5]
+  true.conf<-mean(save)
+  round(true.conf,4)
+
+  # Agresti-Caffo
+  pi.tilde1<-(w1+1)/(n1+2)
+  pi.tilde2<-(w2+1)/(n2+2)
+  var.AC<-pi.tilde1*(1-pi.tilde1) / (n1+2) + pi.tilde2*(1-pi.tilde2) / (n2+2)
+  lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  save.AC[1:10]
+  true.conf.AC<-mean(save.AC)
+  round(true.conf.AC,4)
+
+
+
+###########################################################################
+# Estimated true confidence level holding pi2 fixed at 0.3
+
+  numb.bin.samples<-1000  # Number of binomial samples - changed to reduce simulation variability (makes plot look nicer)
+
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  set.seed(2114)
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+   
+    w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+    w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+    pi.hat1<-w1/n1
+    pi.hat2<-w2/n2
+
+    # Wald
+    lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-mean(save)
+
+    # Agresti-Caffo
+    pi.tilde1<-(w1+1)/(n1+2)
+    pi.tilde2<-(w2+1)/(n2+2)
+    lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-mean(save.AC)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "Estimated true confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+
+
+
+###########################################################################
+# True confidence level
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+  
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-(0:n1)/n1
+  pi.hat2<-(0:n2)/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+ 
+  # Find joint probability for w1 and w2
+  prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+  prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+  prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+  pmf<-prob.all$prob.w1*prob.all$prob.w2
+  
+  # Joint probability of observing w1 and w2 (i.e., P(W1 = w1, W2 = w2))
+  head(data.frame(w.all, pmf = round(pmf,4)))
+  tail(data.frame(w.all, pmf = round(pmf,4)))
+  
+  # Wald
+  var.wald<-pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  sum(save*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,] #Example
+  
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  var.ac<-pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+          pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  sum(save.AC*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,]  #Example
+
+  
+  
+###########################################################################
+# True confidence level holding pi2 fixed
+ 
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-0:n1/n1
+  pi.hat2<-0:n2/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+  
+  # Wald
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+
+
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+
+    # Find joint probability for w1 and w2
+    prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+    prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+    prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+    pmf<-prob.all$prob.w1*prob.all$prob.w2
+   
+    # Wald
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-sum(save*pmf)
+
+    # Agresti-Caffo
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-sum(save.AC*pmf)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure1.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+  # dev.off()  # Create plot for book
+
+  # Black-and-white version of plot
+  # pdf(file = "c:\\figures\\Figure1.4BW.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "black")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "black")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("black", "black"))
+  # dev.off()  # Create plot for book
+
+```
+
+As our sample size increases, the confidence in our estimate increases, our uncertainty decreases and we have greater precision. As mentioned in the previous question, in smaller sample size, the two intervals may present differently. The Wald interval tends to be too liberal. The Agresti-Caffo interval attains it nominal confidence level over a wider range of pairs of sample sizes and success probabilities, but can be conservative for pi values near the endpoints and small sample sizes.
+
+#31(c)
+```{r}
+c.table<-array(data = c(22,10,4,6), dim = c(2,2), dimnames = list(Strategy = c("No time-out", "time-out"), Field_goal =  c("success", "Failure")))
+c.table
+```
+
+```{r}
+# Create the table of sample proportions
+rowTotals = rowSums(c.table) #contains n1 and n2
+n1 = rowTotals[1]
+n2 = rowTotals[2]
+
+pi.hat.table<-c.table/rowTotals
+pi.hat.table
+```
+
+```{r}
+## Confidence intervals for difference of proportions
+
+alpha<-0.01
+pi.hat1<-pi.hat.table[1,1]
+pi.hat2<-pi.hat.table[2,1]
+```
+
+```{r}
+# Wald
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+
+# Calculate Wald interval using function in PropCIs package
+library(PropCIs)
+w1 = c.table[1,1]
+w2 = c.table[2,1]
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald") #The 'sample estimates' attribute is actually the difference in proportions, not just the proportion from the "No time-out" group
+```
+
+```{r}
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+
+#Calculate Agresti-Caffo interval using function in PropCIs package
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "AC")
+```
+
+```{r}
+##Score test for equality of proportions
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z0 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z0
+```
+
+```{r}
+P.value = pnorm(z0, lower.tail=F) 
+P.value 
+```
+
+```{r}
+#Calculate the score test using prop.test function
+prop.test(x = c.table, conf.level = 0.99, alternative = 'greater', correct = FALSE) 
+```
+
+```{r}
+#Calculate the score test using the chisq.test function
+chisq.test(x = c.table, correct = FALSE) 
+```
+```{r}
+# Initial settings
+alpha<-0.05
+pi1<-0.2
+pi2<-0.4
+n1<-10
+n2<-10
+numb.bin.samples<-1000  # Number of binomial samples
+
+
+###########################################################################
+# Estimated true confidence level
+
+  # Simulate w1 and w2
+  set.seed(2349)
+  w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+  w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+  pi.hat1<-w1/n1
+  pi.hat2<-w2/n2
+
+  # Wald
+  var.wald<-pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2
+  lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+
+  # Intervals 1-5
+  data.frame(w1, w2, lower, upper)[1:5,]
+
+  # Calculate estimated true confidence level
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  save[1:5]
+  true.conf<-mean(save)
+  round(true.conf,4)
+
+  # Agresti-Caffo
+  pi.tilde1<-(w1+1)/(n1+2)
+  pi.tilde2<-(w2+1)/(n2+2)
+  var.AC<-pi.tilde1*(1-pi.tilde1) / (n1+2) + pi.tilde2*(1-pi.tilde2) / (n2+2)
+  lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  save.AC[1:10]
+  true.conf.AC<-mean(save.AC)
+  round(true.conf.AC,4)
+
+
+
+###########################################################################
+# Estimated true confidence level holding pi2 fixed at 0.3
+
+  numb.bin.samples<-10000  # Number of binomial samples - changed to reduce simulation variability (makes plot look nicer)
+
+  pi1seq<-seq(from = 0.001, to = 0.999, by = 0.0005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  set.seed(2114)
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+   
+    w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+    w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+    pi.hat1<-w1/n1
+    pi.hat2<-w2/n2
+
+    # Wald
+    lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-mean(save)
+
+    # Agresti-Caffo
+    pi.tilde1<-(w1+1)/(n1+2)
+    pi.tilde2<-(w2+1)/(n2+2)
+    lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-mean(save.AC)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "Estimated true confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+
+
+
+###########################################################################
+# True confidence level
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+  
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-(0:n1)/n1
+  pi.hat2<-(0:n2)/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+ 
+  # Find joint probability for w1 and w2
+  prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+  prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+  prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+  pmf<-prob.all$prob.w1*prob.all$prob.w2
+  
+  # Joint probability of observing w1 and w2 (i.e., P(W1 = w1, W2 = w2))
+  head(data.frame(w.all, pmf = round(pmf,4)))
+  tail(data.frame(w.all, pmf = round(pmf,4)))
+  
+  # Wald
+  var.wald<-pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  sum(save*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,] #Example
+  
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  var.ac<-pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+          pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  sum(save.AC*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,]  #Example
+
+  
+  
+###########################################################################
+# True confidence level holding pi2 fixed
+ 
+  pi1seq<-seq(from = 0.001, to = 0.999, by = 0.0005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-0:n1/n1
+  pi.hat2<-0:n2/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+  
+  # Wald
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+
+
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+
+    # Find joint probability for w1 and w2
+    prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+    prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+    prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+    pmf<-prob.all$prob.w1*prob.all$prob.w2
+   
+    # Wald
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-sum(save*pmf)
+
+    # Agresti-Caffo
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-sum(save.AC*pmf)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure1.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+  # dev.off()  # Create plot for book
+
+  # Black-and-white version of plot
+  # pdf(file = "c:\\figures\\Figure1.4BW.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "black")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "black")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("black", "black"))
+  # dev.off()  # Create plot for book
+
+```
+
+Basically, increasing the sample size decreases the width of confidence intervals, because it decreases the standard error. The larger your sample, the more sure you can be that their answers truly reflect the population. This indicates that for a given confidence level, the larger your sample size, the smaller your confidence interval. 
+
+#31(c)
+
+```{r}
+# Initial settings
+alpha<-0.01
+pi1<-0.2
+pi2<-0.4
+n1<-20
+n2<-20
+numb.bin.samples<-100  # Number of binomial samples
+
+
+###########################################################################
+# Estimated true confidence level
+
+  # Simulate w1 and w2
+  set.seed(2349)
+  w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+  w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+  pi.hat1<-w1/n1
+  pi.hat2<-w2/n2
+
+  # Wald
+  var.wald<-pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2
+  lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+
+  # Intervals 1-5
+  data.frame(w1, w2, lower, upper)[1:5,]
+
+  # Calculate estimated true confidence level
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  save[1:5]
+  true.conf<-mean(save)
+  round(true.conf,4)
+
+  # Agresti-Caffo
+  pi.tilde1<-(w1+1)/(n1+2)
+  pi.tilde2<-(w2+1)/(n2+2)
+  var.AC<-pi.tilde1*(1-pi.tilde1) / (n1+2) + pi.tilde2*(1-pi.tilde2) / (n2+2)
+  lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) * sqrt(var.AC)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  save.AC[1:10]
+  true.conf.AC<-mean(save.AC)
+  round(true.conf.AC,4)
+
+
+
+###########################################################################
+# Estimated true confidence level holding pi2 fixed at 0.3
+
+  numb.bin.samples<-1000  # Number of binomial samples - changed to reduce simulation variability (makes plot look nicer)
+
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  set.seed(2114)
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+   
+    w1<-rbinom(n = numb.bin.samples, size = n1, prob = pi1)
+    w2<-rbinom(n = numb.bin.samples, size = n2, prob = pi2)
+
+    pi.hat1<-w1/n1
+    pi.hat2<-w2/n2
+
+    # Wald
+    lower<-pi.hat1 - pi.hat2 - qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    upper<-pi.hat1 - pi.hat2 + qnorm(p = 1-alpha/2) *
+      sqrt(pi.hat1*(1-pi.hat1) / n1 + pi.hat2*(1-pi.hat2) / n2)
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-mean(save)
+
+    # Agresti-Caffo
+    pi.tilde1<-(w1+1)/(n1+2)
+    pi.tilde2<-(w2+1)/(n2+2)
+    lower.AC<-pi.tilde1 - pi.tilde2 - qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    upper.AC<-pi.tilde1 - pi.tilde2 + qnorm(p = 1-alpha/2) *
+            sqrt(pi.tilde1*(1-pi.tilde1) / (n1+2) +
+              pi.tilde2*(1-pi.tilde2) / (n2+2))
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-mean(save.AC)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "Estimated true confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+
+
+
+###########################################################################
+# True confidence level
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+  
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-(0:n1)/n1
+  pi.hat2<-(0:n2)/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+ 
+  # Find joint probability for w1 and w2
+  prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+  prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+  prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+  pmf<-prob.all$prob.w1*prob.all$prob.w2
+  
+  # Joint probability of observing w1 and w2 (i.e., P(W1 = w1, W2 = w2))
+  head(data.frame(w.all, pmf = round(pmf,4)))
+  tail(data.frame(w.all, pmf = round(pmf,4)))
+  
+  # Wald
+  var.wald<-pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * sqrt(var.wald)
+  save<-ifelse(test = pi1-pi2 > lower,
+               yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+  sum(save*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,] #Example
+  
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  var.ac<-pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+          pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) * sqrt(var.ac)
+  save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                  yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+  sum(save.AC*pmf)
+  data.frame(w.all, round(data.frame(pmf, lower, upper),4), save)[1:15,]  #Example
+
+  
+  
+###########################################################################
+# True confidence level holding pi2 fixed
+ 
+  pi1seq<-seq(from = 0.01, to = 0.99, by = 0.005)
+  # pi1seq<-0.2  # Testing
+  # pi1seq<-seq(from = 0.1, to = 0.9, by = 0.1)  # Testing
+
+  # Save true confidence levels in a matrix
+  save.true.conf<-matrix(data = NA, nrow = length(pi1seq), ncol = 3)
+
+  # Create counter for the loop
+  counter<-1
+
+  # All possible combinations of w1 and w2
+  w.all<-expand.grid(w1 = 0:n1, w2 = 0:n2)
+
+  # All possible combinations of pi^_1 and pi^_2
+  pi.hat1<-0:n1/n1
+  pi.hat2<-0:n2/n2
+  pi.hat.all<-expand.grid(pi.hat1 = pi.hat1, pi.hat2 = pi.hat2)
+  
+  # Wald
+  lower<-pi.hat.all[,1] - pi.hat.all[,2] - qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+  upper<-pi.hat.all[,1] - pi.hat.all[,2] + qnorm(p = 1-alpha/2) * 
+         sqrt(pi.hat.all[,1]*(1-pi.hat.all[,1]) / n1 + pi.hat.all[,2]*(1-pi.hat.all[,2]) / n2)
+
+  # Agresti-Caffo
+  pi1tilde<-(0:n1+1)/(n1+2)
+  pi2tilde<-(0:n2+1)/(n2+2)
+  pi.all.tilde<-expand.grid(pi1tilde = pi1tilde, pi2tilde = pi2tilde)
+  lower.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] - qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+  upper.AC<-pi.all.tilde[,1] - pi.all.tilde[,2] + qnorm(p = 1-alpha/2) *
+            sqrt(pi.all.tilde[,1]*(1-pi.all.tilde[,1]) / (n1+2) +
+              pi.all.tilde[,2]*(1-pi.all.tilde[,2]) / (n2+2))
+
+
+  # Loop over each pi1 that the true confidence level is calculated on
+  for(pi1 in pi1seq) {
+
+    # Find joint probability for w1 and w2
+    prob.w1<-dbinom(x = 0:n1, size = n1, prob = pi1)
+    prob.w2<-dbinom(x = 0:n2, size = n2, prob = pi2)
+    prob.all<-expand.grid(prob.w1 = prob.w1, prob.w2 = prob.w2)
+    pmf<-prob.all$prob.w1*prob.all$prob.w2
+   
+    # Wald
+    save<-ifelse(test = pi1-pi2 > lower,
+                 yes = ifelse(test = pi1-pi2 < upper, yes = 1, no = 0), no = 0)
+    wald<-sum(save*pmf)
+
+    # Agresti-Caffo
+    save.AC<-ifelse(test = pi1-pi2 > lower.AC,
+                    yes = ifelse(test = pi1-pi2 < upper.AC, yes = 1, no = 0), no = 0)
+    AC<-sum(save.AC*pmf)
+  
+    save.true.conf[counter,]<-c(pi1, wald, AC)
+    counter<-counter+1
+  }
+  
+  
+  # Plot
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure1.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "blue")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "red")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("blue", "red"))
+  # dev.off()  # Create plot for book
+
+  # Black-and-white version of plot
+  # pdf(file = "c:\\figures\\Figure1.4BW.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = save.true.conf[,1], y = save.true.conf[,2], xlab = expression(pi[1]),
+    ylab = "True confidence level", type = "l", ylim = c(0.85,1), lty = "solid", col = "black")
+  lines(x = save.true.conf[,1], y = save.true.conf[,3], lty = "dashed", col = "black")
+  abline(h = 1-alpha, lty = "dotted")
+  legend(x = 0.1, y = 0.88, legend = c("Wald", "Agresti-Caffo"), lty = c("solid", "dashed"),
+    bty = "n", col = c("black", "black"))
+  # dev.off()  # Create plot for book
+
+```
+
+
+Basically, increasing the confidence level increases the error bound, making the confidence interval wider. Decreasing the confidence level decreases the error bound, making the confidence interval narrower. The reason is that according to the definition of confidence level, with a 95 percent confidence interval, we may have a 5 percent chance of being wrong. With a 90 percent confidence interval, we can have a 10 percent chance of being wrong. A 99 percent confidence interval would be wider than a 95 percent confidence interval. 

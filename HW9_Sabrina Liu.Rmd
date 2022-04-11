@@ -1,0 +1,261 @@
+---
+title: "HW9_Sabrina Liu"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+1(a)
+```{r}
+library(vcd)
+SI <- c(43, 134, 26, 149, 29, 23, 22, 36)
+SI <- array(SI, dim=c(2,2,2))
+dimnames(SI) <- list(Intercourse=c("yes","no"),
+                     Race=c("white","black"),
+                     Gender=c("male","female"))
+SI_table = ftable(SI, row.vars=c("Race","Gender"),col.vars="Intercourse")
+SI_df <- as.data.frame(SI_table)
+SI_df
+as.factor(SI_df$Freq)
+SI_sum <- glm(SI_df$Freq ~ SI_df$Race +SI_df$Gender)
+summary(SI_sum)
+```
+#Frequency = 1.00 * Race - 60.50 * Gender + 87.50
+
+1(b)
+```{r}
+alpha = 0.10
+c = 1 #Set the unit increase you want the odds ratio for
+
+##Wald interval using formulas
+beta1.ci = SI_sum$coef[2] + qnorm(p = c(alpha/2, 1-alpha/2))*sqrt(vcov(SI_sum)[2,2])
+OR.ci = exp(c*beta1.ci)
+OR.ci
+```
+#Based on this sample, we are 90% confident that the estimated probability of sexual intercourse in the population is between 7.335028e-25 and 1.007366e+25.   
+
+1(c)
+```{r}
+beta1.ci.LR = confint(object = SI_sum, level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+OR.ci.LR = exp(c*beta1.ci.LR) #confidence level of e to the beta
+as.numeric(OR.ci.LR)
+```
+##Based on this sample, we are 90% confident that the conditional effect of race is between 38.50724 and 136.492760; the conditional effect of is between -117.07197 and -3.928034. 
+
+2(a)
+```{r}
+library(car)
+library(dplyr)
+library(ggplot2)
+challenger <- read.table(file = "challenger.csv", header = TRUE, sep = ",", stringsAsFactors = T , dec=",")
+model.temp = glm(as.factor(challenger$O.ring) ~ as.factor(challenger$Temp), family = binomial(link = "logit"))
+summary(model.temp)
+model2 = glm(O.ring/Number ~ Temp, data = challenger, family = binomial, weights = Number)
+alpha = 0.05
+#pi vs. Temp
+new_challenger <- data.frame(Temp = seq(from = 31, to = 81, by = 1))
+lp.hat <- predict.glm(model2, newdata = new_challenger, type = "link", se.fit = TRUE)
+lp.hat.mean <- lp.hat$fit
+pi.hat <- exp(lp.hat.mean) / (1 + exp(lp.hat.mean))
+plot(new_challenger$Temp, pi.hat, ylim = range(c(0,1)),
+     xlab = "Temperature", ylab = "Predicted Prob of single O-ring failure", 
+     main = "Predicted Pi vs. Temperature", type = 'l', col = 'black', lwd = 2)
+#expected number of failures vs. Temp
+plot(new_challenger$Temp, pi.hat * 6, ylim = range(c(0,6)),
+     xlab = "Temperature", ylab = "Predicted Number of O-ring failures", 
+     main = "Predicted O-ring Failures vs. Temperature", type = 'l', col = 'blue', lwd = 2)
+
+ci.pi <- function(newdata, mod.fit.obj, alpha){
+  linear.pred <- predict(object = mod.fit.obj, newdata = newdata, type = "link", se = TRUE)
+  CI.lin.pred.lower <- linear.pred$fit - qnorm(p = 1-alpha/2)*linear.pred$se
+  CI.lin.pred.upper <- linear.pred$fit + qnorm(p = 1-alpha/2)*linear.pred$se
+  CI.pi.lower <- exp(CI.lin.pred.lower) / (1 + exp(CI.lin.pred.lower))
+  CI.pi.upper <- exp(CI.lin.pred.upper) / (1+ exp(CI.lin.pred.upper))
+  list(lower = CI.pi.lower, upper = CI.pi.upper)
+}
+plot(new_challenger$Temp, pi.hat,
+     xlab = "Temperature", ylab = "Predicted Prob of single O-ring failure", 
+     main= "Predicted Prob of single O-ring failure", type = 'l', col = 'black', lwd = 2)
+curve(expr = ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = model2, alpha = 0.05)$lower, col = "red", lty = "dotdash", add = TRUE, xlim = c(31, 81))
+curve(expr = ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = model2, alpha = 0.05)$upper, col = "red", lty = "dotdash", add = TRUE, xlim = c(31, 81))
+
+
+```
+
+2(b)
+```{r}
+c.table<-array(data = c(251, 48, 34, 5), dim = c(2,2), dimnames = list(First = c("made", "missed"),
+             Second = c("made", "missed")))
+bird1 <- as.data.frame(as.table(c.table))
+trials <- aggregate(formula = Freq ~ First, data = bird1, FUN = sum)
+success <- bird1[bird1$Second == "made", ]
+bird2 <- data.frame(First = success$First, success = success$Freq , trials = trials$Freq)
+bird2
+
+y <- success$Freq/trials$Freq
+x <- c(0,1)
+bird_model <- glm(y~x,data = bird2, family = binomial(link = logit))
+
+summary(bird_model)
+OR.hat<-c.table[1,1]*c.table[2,2] / (c.table[2,1]*c.table[1,2])
+  round(OR.hat, 2)
+  round(1/OR.hat, 2)
+
+  alpha<-0.05
+  var.log.or<-1/c.table[1,1] + 1/c.table[1,2] + 1/c.table[2,1] + 1/c.table[2,2]
+  OR.CI<-exp(log(OR.hat) + qnorm(p = c(alpha/2, 1-alpha/2)) *
+        sqrt(var.log.or))
+  round(OR.CI, 2)
+  
+beta.ci<-confint(object = bird_model, parm = "x", level = 0.95)
+exp(beta.ci)
+rev(1/exp(beta.ci)) 
+```
+
+2(c)
+```{r}
+c.table <- array(data = c(57, 142, 200688, 201087), dim = c(2,2), dimnames = list(Treatment = c("vaccine", "placebo"), Result = c("polio", "polio free")))
+c.table
+OR.hat<-c.table[1,1]*c.table[2,2] / (c.table[2,1]*c.table[1,2])
+  round(OR.hat, 4)
+  round(1/OR.hat, 4)
+
+  alpha<-0.05
+  var.log.or<-1/c.table[1,1] + 1/c.table[1,2] + 1/c.table[2,1] + 1/c.table[2,2]
+  OR.CI<-exp(log(OR.hat) + qnorm(p = c(alpha/2, 1-alpha/2)) *
+        sqrt(var.log.or))
+  round(OR.CI, 4)
+  rev(round(1/OR.CI, 4))
+polio<-data.frame(Treatment = c(0,1), no.polio = c(200688, 201087), trials = 
+    c(200745, 201229))
+polio
+mod.fit<-glm(formula = no.polio/trials ~ Treatment, weight = trials, family = 
+    binomial(link = logit), data = polio)
+summary(mod.fit)
+
+beta.ci<-confint(object = mod.fit, parm = "Treatment", level = 0.95)
+exp(beta.ci)
+rev(1/exp(beta.ci)) 
+```
+
+2.4.18
+```{r}
+placekick<-read.table(file = "Placekick.csv", header = TRUE, sep = ",")
+
+mod.fit<-glm(formula = good ~ distance + distance^2, family = binomial(link = logit), data = placekick)
+summary(mod.fit) 
+
+exp(mod.fit$coefficients[2])
+exp(-10*mod.fit$coefficients[2])
+```
+#The first odds ratio is for a 1-yard (c = 1) increase in distance. C = 10 would be much more meaningful because 10 yards are needed for a firstdown in football. Also, it is more meaningful to look at a 10 yard decrease (another first down) rather than a 10 yard increase. Therefore, the estimated odds of a success change 3.159 times for every 10 yard decrease in the distance of the placekick. 
+
+4(a)
+```{r}
+age.kyph.yes = c(12, 15, 42, 52, 59, 73, 82, 91, 96, 105, 114, 120, 121, 128, 130, 139, 139, 157)
+age.kyph.no = c(1, 1, 2, 8, 11, 18, 22, 31, 37, 61, 72, 81, 97, 112, 118, 127, 131, 140, 151, 159, 177, 206)
+
+kyph = c(rep(1, length(age.kyph.yes)), rep(0, length(age.kyph.no)))
+age = c(age.kyph.yes, age.kyph.no)
+
+age.cat.breaks = 25*1:6
+age.cats = cut(age, breaks = c(0, age.cat.breaks, max(age)))
+cats.kyph = aggregate(kyph~age.cats, FUN = sum)
+cats.n = aggregate(kyph~age.cats, FUN = length)
+cats.meanage = aggregate(age~age.cats, FUN = mean)
+```
+
+4(b)
+```{r}
+plot(age, kyph, xlab = "Age (mos)", ylab = "Kyphosis (yes/no)", main = "Plot of kyphosis data", pch = " ")
+points(age.kyph.yes, rep(1, length(age.kyph.yes)), pch = "1")
+points(age.kyph.no, rep(0, length(age.kyph.no)), pch = "0")
+points(cats.meanage$age, cats.kyph$kyph/cats.n$kyph, pch = '+')
+```
+
+4(c)
+```{r}
+plot(age, kyph, xlab = "Age (mos)", ylab = "Kyphosis (yes/no)", main = "Plot of kyphosis data", pch = " ")
+points(age.kyph.yes, rep(1, length(age.kyph.yes)), pch = "1")
+points(age.kyph.no, rep(0, length(age.kyph.no)), pch = "0")
+points(cats.meanage$age, cats.kyph$kyph/cats.n$kyph, pch = '+')
+##Estimate a model with a quadratic term for age
+model.kyph.quad = glm(kyph~age + I(age^2), family = binomial) #Note: we shouldn't just use age^2 in the model formula. As we've seen, ^2 has a special interpretation in model formulas meaning fit two-way interactions. The I() or identify function instructs R to interpet its argument in the usual way.
+curve(expr = predict(object = model.kyph.quad, newdata = data.frame(age = x), type = "response"), col = "blue", lwd = 1, add = T)
+```
+4(d)
+```{r}
+predict(object = model.kyph.quad, newdata = data.frame(age = 100), type = "response")
+alpha = 0.05
+beta1.ci.LR = confint(object = model.kyph.quad, level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+OR.ci.LR = exp(100*beta1.ci.LR) #confidence level of e to the beta
+as.numeric(OR.ci.LR)
+```
+
+4(e)
+```{r}
+predict(object = model.kyph.quad, newdata = data.frame(age = 50), type = "response")
+alpha = 0.05
+beta1.ci.LR = confint(object = model.kyph.quad, level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+OR.ci.LR = exp(50*beta1.ci.LR) #confidence level of e to the beta
+as.numeric(OR.ci.LR)
+
+predict(object = model.kyph.quad, newdata = data.frame(age = 150), type = "response")
+alpha = 0.05
+beta1.ci.LR = confint(object = model.kyph.quad, level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+OR.ci.LR = exp(150*beta1.ci.LR) #confidence level of e to the beta
+as.numeric(OR.ci.LR)
+```
+#The convidence leves show the difference between the effects of different ages, which 150 month aged has more affects on Kyphosis. 
+
+
+2.4.9(a)
+```{r}
+placekick<-read.table(file = "Placekick.csv", header = TRUE, sep = ",")
+head(placekick)
+tail(placekick)
+
+
+#####################################################################
+ # with interaction
+
+  mod.fit<-glm(formula = good ~ distance + wind + wind : distance, family = binomial(link = logit), data = placekick)
+  summary(mod.fit)
+
+
+  # without interaction
+  mod.fit2<-glm(formula = good ~ distance + wind, family = binomial(link = logit), data = placekick)
+  summary(mod.fit2)
+```
+2.4.9(b)
+```{r}
+par(mfrow = c(1,2))
+curve(expr = predict(object = mod.fit2, newdata = data.frame(distance = x, wind = 0), type = "response"), lty = "solid", xlim = c(20, 35), ylim = c(0,1), ylab = "Estimated prob", main = "Without interaction", xlab = "distance (cm)", lwd = 1)
+curve(expr = predict(object = mod.fit2, newdata = data.frame(distance = x, wind = 1), type = "response"), lty = "dotdash", col = "gray", lwd = 1, add = TRUE)
+legend("bottomright", legend = c("wind = 0", "wind = 1"), lty = c("solid", "dotdash"), col = c("black", "gray"), lwd = c(1, 1))
+
+curve(expr = predict(object = mod.fit, newdata = data.frame(distance = x, wind = 0), type = "response"), lty = "solid", xlim = c(20, 35), ylim = c(0, 1), ylab = "Estimated prob", main = "With interaction", xlab = "distance (cm)", lwd = 1)
+curve(expr = predict(object = mod.fit, newdata = data.frame(distance = x, wind = 1), type = "response"), lty = "dotdash", col = "gray", lwd = 1, add = TRUE)
+legend("bottomright", legend = c("wind = 0", "wind = 1"), lty = c("solid", "dotdash"), col = c("black", "gray"), lwd = c(1,1))
+```
+2.4.9(c)
+```{r}
+  # Estimated odds ratio
+  exp(mod.fit$coefficients[2])
+  exp(-10*mod.fit$coefficients[2])
+```
+#A 1 unit increase in wind leads to an estimated 89.56078% increase in the mean number of distance. 
+
+2.4.9(d)
+```{r}
+Anova(mod.fit)
+Anova(mod.fit2)
+```
+#The p-values in the output below tell us that the interaction effect (distance:wind ) is statistically significant. Consequently, we know that the distance depends on the speed of the wind.
+
+
+

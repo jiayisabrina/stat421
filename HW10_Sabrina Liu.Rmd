@@ -1,0 +1,100 @@
+---
+title: "HW10_Sabrina Liu"
+output: html_document
+---
+
+2.4.8(a)
+```{r}
+  placekick.BW <- read.table(file = "placekick.BW.csv", header = TRUE, sep = ",", stringsAsFactors = T , dec=",")
+  library(plyr)
+  library(varhandle)
+  placekick.BW$Good <- revalue(placekick.BW$Good, c("Y" = 1))
+  placekick.BW$Good <- revalue(placekick.BW$Good, c("N" = 0))
+  placekick.BW$Good <- unfactor(placekick.BW$Good)
+  placekick.BW$Pressure <- revalue(placekick.BW$Pressure, c("Y" = 1))
+  placekick.BW$Pressure  <- revalue(placekick.BW$Pressure, c("N" = 0))
+  placekick.BW$Pressure  <- unfactor(placekick.BW$Pressure)
+  
+  mod.fit<-glm(formula = Good ~ Distance + Weather + Wind15 + Temperature + Grass + Pressure + Ice, family = binomial(link = logit), data = placekick.BW)
+  mod.fit 
+```
+
+2.4.8(b)
+#Once the data has been categorized (the MINITAB "CODE" command may be used to perform this function), the MINITAB "TABLE" command will create two-way tables. Using the "ROWPERCENT" subcommand reproduces this table with the percentages of rowers in each Weather category. 
+
+2.4.8(c) 
+```{r}
+anova(mod.fit)
+```
+#
+
+2.4.8(d)
+```{r}
+alpha = 0.5
+exp(mod.fit$coefficients[2])
+1/exp(10*mod.fit$coefficients[2])
+beta1.ci.LR = confint(object = mod.fit, parm = "Distance", level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+```
+
+2.4.8(e)
+```{r}
+
+exp(mod.fit$coefficients[3])
+1/exp(10*mod.fit$coefficients[3])
+beta1.ci.LR = confint(object = mod.fit, parm = "WeatherInside", level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+
+exp(mod.fit$coefficients[4])
+1/exp(10*mod.fit$coefficients[4])
+beta1.ci.LR = confint(object = mod.fit, parm = "WeatherSnowRain", level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+
+exp(mod.fit$coefficients[5])
+1/exp(10*mod.fit$coefficients[5])
+beta1.ci.LR = confint(object = mod.fit, parm = "WeatherSun", level = 1-alpha) #confint computes LR intervals from a fitted model object by default
+beta1.ci.LR
+```
+
+2.4.8(g)
+```{r}
+
+```
+
+2.4.8(h)
+```{r}
+
+```
+
+2.4.10(a)
+```{r}
+CT2 <- read.table(file = "aptima_combo.csv", header = TRUE, sep = ",")
+CT2
+CT2$Disease <- revalue(CT2$Disease, c("Chlamydia" = 1))
+CT2$Disease <- revalue(CT2$Disease, c("Gonorrhea" = 0))
+CT2$Disease  <- as.factor(CT2$Disease)
+mod.fit<-glm(formula = Disease ~ Gender + Specimen + Symptoms_Status, family = binomial(link = logit), data = CT2)
+mod.fit 
+```
+2.4.10(b)
+#
+
+2.4.10(c)
+```{r}
+CT2$gender.numb <- ifelse(test = CT2$Gender == "Female", yes = 0, no = 1)
+CT2$sensitivity <- CT2$True_positive/CT2$Sample_size
+plot(x = CT2$gender.numb, y = CT2$sensitivity, xlab =
+"Gender", ylab = "Sensitivity", type = "n", xaxt = "n") 
+axis(side = 1, at = c(0,1), labels = c("Female", "Male")) 
+Swab.Symptomatic <- CT2$Specimen == "Swab" &
+CT2$Symptoms_Status == "Symptomatic" 
+lines(x = CT2$gender.numb[Swab.Symptomatic],
+CT2$sensitivity[Swab.Symptomatic], type = "o", lty =
+"solid", col = "black")
+```
+
+2.4.10(d)
+```{r}
+
+```
+

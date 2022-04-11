@@ -1,0 +1,300 @@
+---
+title: "STAT421_HW6_Sabrina Liu"
+output: html_document
+---
+
+#1(a)
+```{r}
+library(vcd)
+deathpenalty <- c(19,132, 11,52,0,9, 6,97)
+deathpenalty <- array(deathpenalty, dim=c(2,2,2))
+dimnames(deathpenalty) <- list(Death_Penalty=c("yes","no"),
+                     Defendant=c("white","black"),
+                     Victim=c("white","black"))
+ftable(deathpenalty, row.vars=c("Defendant","Victim"),
+col.vars="Death_Penalty")
+```
+
+#1(b)
+```{r}
+matrix2 <- matrix(c(19, 132,11, 52))
+
+tab2 <- as.table(matrix(matrix2, nrow = 2, byrow = T, 
+                           dimnames = list(Defendent = c('White', "Black"), 
+                                           Death_Pealty = c('Yes', 'No'))))
+tab2
+
+  n11 = tab2[1,1] + 0.5
+  n12 = tab2[1,2] + 0.5
+  n21 = tab2[2,1] + 0.5
+  n22 = tab2[2,2] + 0.5
+
+  OR.hat<-(n11*n22)/(n12*n21)
+  round(OR.hat, 4)
+  round(1/OR.hat, 4)
+
+  alpha<-0.05
+  var.log.or<-1/n11 + 1/n12 + 1/n21 + 1/n22
+  OR.CI<-exp(log(OR.hat) + qnorm(p = c(alpha/2, 1-alpha/2)) * sqrt(var.log.or))
+  round(OR.CI, 4)
+  rev(round(1/OR.CI, 4))
+```
+#This odds ratio is less than 1, so we can conclude when the victim is white, a black defendant is more likely to have a death penalty than a white defendant.
+
+```{r}
+matrix2 <- matrix(c(0, 9, 6, 97))
+
+tab2 <- as.table(matrix(matrix2, nrow = 2, byrow = T, 
+                           dimnames = list(Defendent = c('White', "Black"), 
+                                           Death_Pealty = c('Yes', 'No'))))
+tab2
+
+  n11 = tab2[1,1] + 0.5
+  n12 = tab2[1,2] + 0.5
+  n21 = tab2[2,1] + 0.5
+  n22 = tab2[2,2] + 0.5
+
+  OR.hat<-(n11*n22)/(n12*n21)
+  round(OR.hat, 4)
+  round(1/OR.hat, 4)
+
+  alpha<-0.05
+  var.log.or<-1/n11 + 1/n12 + 1/n21 + 1/n22
+  OR.CI<-exp(log(OR.hat) + qnorm(p = c(alpha/2, 1-alpha/2)) * sqrt(var.log.or))
+  round(OR.CI, 4)
+  rev(round(1/OR.CI, 4))
+```
+#This odds ratio is less than 1, so we can conclude when the victim is black, a black defendant is more likely to have a death penalty than a white defendant.
+
+#1(c)
+```{r}
+penalty<-margin.table(deathpenalty,1)
+defand<-margin.table(deathpenalty, 2)
+victim<-margin.table(deathpenalty,3)
+deathexp<-(defand%o%victim%o%penalty)/(sum(deathpenalty)^2)
+chisqr<-sum(((deathexp-deathpenalty)^2)/deathexp)
+1-pchisq(chisqr,4)
+AB<-margin.table(deathpenalty, 2:3)
+AC<-margin.table(deathpenalty, c(2,1))
+BC<-margin.table(deathpenalty, c(3,1))
+
+chisq.test(AB)
+chisq.test(AC)
+chisq.test(BC)
+
+oddsratio(AB, log=FALSE)
+oddsratio(AC, log=FALSE)
+oddsratio(BC, log=FALSE)
+```
+#In this case, we had marginal odds greater than one, and partial odds ratios less than one. Simpson's paradox is valid in this case, since conditional and marginal odds ratios in this case were contradictory.
+
+#2(a)
+```{r}
+male_cor =  (0.0263*(1-0.0049))/(0.0049*(1-0.0263))
+male_cor
+female_cor = (0.0072*(1-0.0023))/(0.0023*(1-0.0023))
+female_cor
+```
+
+#2(b)
+```{r}
+non_white = 0.5*0.0263+0.5*0.0072
+non_white
+white = 0.5*0.0049+0.5*0.0023
+white
+the_mor = (non_white*(1-white))/(white*(1-non_white))
+the_mor
+```
+
+#1.3.24(a)
+```{r}
+c.table<-array(data = c(251, 48, 34, 5), dim = c(2,2), dimnames = list(First = c("Made", "Missed"),
+Second = c("Made", "Missed"))) #Notice how the counts are entered in by column
+c.table
+rowTotals = rowSums(c.table) #contains n1 and n2
+n1 = rowTotals[1]
+n2 = rowTotals[2]
+w1 = c.table[1,1]
+w2 = c.table[2,1]
+
+pi.hat.table<-c.table/rowTotals
+pi.hat.table
+alpha<-0.05
+pi.hat1<-pi.hat.table[1,1]
+pi.hat2<-pi.hat.table[2,1]
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z0 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z0
+
+# Wald
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+library(PropCIs)
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald") 
+
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+```
+
+#1.3.24(b)
+```{r}
+
+pi.hat.plus1<-sum(c.table[,1])/n
+pi.hat.1plus<-sum(c.table[1,])/n
+data.frame(pi.hat.plus1, pi.hat.1plus, diff = pi.hat.plus1 - pi.hat.1plus)
+
+pi.hat21 = pi.hat.table[2,1]
+pi.hat12 = pi.hat.table[1,2]
+pi.hat21 - pi.hat12
+
+# C.I. for p__+1 - p_1+
+  alpha = 0.05
+
+  # Wald interval using formulas
+  se.Wald.mp = sqrt((pi.hat21 + pi.hat12 - (pi.hat21 - pi.hat12)^2)/n) #mp for 'matched pairs'
+  round(pi.hat21 - pi.hat12 + qnorm(p = c(alpha/2, 1-alpha/2))*se.Wald.mp,4)
+
+  # Wald using function from PropCIs package
+  library(package = PropCIs)
+  diffpropci.Wald.mp(b = c.table[1,2], c = c.table[2,1], n = sum(c.table), conf.level = 1-alpha) 
+
+  # Agresti-Min with formulas
+  c.table.adjust = c.table + 0.5
+  n.adjust = sum(c.table.adjust)
+  pi.hat.table.adjust = c.table.adjust/n.adjust
+
+  pi.hat12.adjust = pi.hat.table.adjust[1,2]
+  pi.hat21.adjust = pi.hat.table.adjust[2,1]
+
+  se.AM.mp = sqrt((pi.hat21.adjust + pi.hat12.adjust - (pi.hat21.adjust-pi.hat12.adjust)^2)/n.adjust)
+  round(pi.hat21.adjust-pi.hat12.adjust + qnorm(c(alpha/2, 1-alpha/2))*se.AM.mp, 4)
+
+  # Agresti-Min using function from PropCIs
+  diffpropci.mp(b = c.table[1,2], c = c.table[2,1], n = sum(c.table), conf.level = 1-alpha)
+```
+
+#1.3.24(c)
+```{r}
+# Wald
+se.wald <- sqrt(pi.hat1*(1-pi.hat1)/n1 + pi.hat2*(1-pi.hat2)/n2)
+round(pi.hat1 - pi.hat2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.wald, 4)
+
+# Calculate Wald interval using function in PropCIs package
+library(PropCIs)
+w1 = c.table[1,1]
+w2 = c.table[2,1]
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "Wald") #The 'sample estimates' attribute is actually the difference in proportions, not just the proportion from the placebo group
+
+#Agresti-Caffo
+pi.tilde1 = (w1+1)/(n1+2)
+pi.tilde2 = (w2+1)/(n2+2)
+pi.tilde1 - pi.tilde2
+se.AC = sqrt(pi.tilde1*(1-pi.tilde1)/(n1+2) + pi.tilde2*(1-pi.tilde2)/(n2+2))
+round(pi.tilde1 - pi.tilde2 + qnorm(p = c(alpha/2, 1-alpha/2))*se.AC, 4)
+
+#Calculate Agresti-Caffo interval using function in PropCIs package
+wald2ci(x1 = w1, n1 = n1, x2 = w2, n2 = n2, conf.level = 1-alpha, adjust = "AC") #Notice how the 'sample estimates' becomes pi.tilde1 - pi.tilde2.
+
+##Score test for equality of proportions
+
+w = w1 + w2
+n = n1 + n2
+pi.bar = w/n
+z0 = (pi.hat1-pi.hat2)/sqrt(pi.bar*(1-pi.bar)*(1/n1 + 1/n2))
+z0
+```
+
+
+#2.4.2
+#We can see that the steepness or the slope of the curve changed. When the size of β gets larger, the curve become steeper; instead when the size of β gets smaller, the curve become flatter. However, there is not obivious relationship between x and π, since there is cleary non-linear relationship between x and π. The change of x has less impact on π when π is near 0 or 1 than when π is in the mid-range. 
+
+#2.4.7(a)
+#In this case we would convert the factor variables to numeric, which Y is equal to 1, and N is equal to 0. Therefore, we calculate the sum of Y is counting for the number of successes. 
+
+#2.4.7(b)
+```{r}
+placekick.BW <- read.table(file = "placekick.BW.csv", header = TRUE, sep = ",", stringsAsFactors = T , dec=",")
+head(placekick.BW)
+tail(placekick.BW)
+mod.fit<-glm(formula = Good ~ Distance, family = binomial(link = logit), data = placekick.BW)
+  mod.fit 
+  names(mod.fit)
+  mod.fit$coefficients
+  library(plyr)
+  library(varhandle)
+  placekick.BW$Good <- revalue(placekick.BW$Good, c("Y" = 1))
+  placekick.BW$Good <- revalue(placekick.BW$Good, c("N" = 0))
+  placekick.BW$Good <- unfactor(placekick.BW$Good)
+
+
+  class(mod.fit)
+  methods(class = glm)  # Method functions for object of class glm
+  methods(class = lm)
+  
+  summary(object = mod.fit)  # summary(mod.fit) works too
+  
+  w<-aggregate(formula = Good ~ Distance, data = placekick.BW, FUN = sum)
+  n<-aggregate(formula = Good ~ Distance, data = placekick.BW, FUN = length)
+  w.n<-data.frame(distance = w$Distance, success = w$Good, trials = n$Good, proportion = round(w$Good/n$Good,4))
+  head(w.n)
+  tail(w.n)
+  
+  # Plot of the observed proportions with logistic regression model
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure2.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = w$Distance, y = w$Good/n$Good, xlab = "Distance (yards)", ylab = "Estimated probability",
+       panel.first = grid(col = "gray", lty = "dotted"))
+  # Put estimated logistic regression model on the plot
+   curve(expr = predict(object = mod.fit, newdata = data.frame(Distance = x), type = "response"), col = "red", add = TRUE, xlim = c(18, 66))
+```
+
+#2.4.7(c)
+```{r}
+placekick<-read.table(file = "Placekick.csv", header = TRUE, sep = ",")
+head(placekick)
+tail(placekick)
+
+
+#####################################################################
+# Estimate the model
+
+  mod.fit<-glm(formula = good ~ distance, family = binomial(link = logit), data = placekick)
+  mod.fit 
+  names(mod.fit)
+  mod.fit$coefficients
+
+  class(mod.fit)
+  methods(class = glm)  # Method functions for object of class glm
+  methods(class = lm)
+  
+  summary(object = mod.fit)  # summary(mod.fit) works too
+
+  # Distance and change
+  mod.fit2<-glm(formula = good ~ change + distance, family = binomial(link = logit), data = placekick)
+  mod.fit2$coefficients
+
+  summary(mod.fit2)
+  
+  w<-aggregate(formula = good ~ distance, data = placekick, FUN = sum)
+  n<-aggregate(formula = good ~ distance, data = placekick, FUN = length)
+  w.n<-data.frame(distance = w$distance, success = w$good, trials = n$good, proportion = round(w$good/n$good,4))
+  head(w.n)
+  tail(w.n)
+  
+  # Plot of the observed proportions with logistic regression model
+  x11(width = 7, height = 6, pointsize = 12)
+  # pdf(file = "c:\\figures\\Figure2.4color.pdf", width = 7, height = 6, colormodel = "cmyk")   # Create plot for book
+  plot(x = w$distance, y = w$good/n$good, xlab = "Distance (yards)", ylab = "Estimated probability",
+       panel.first = grid(col = "gray", lty = "dotted"))
+  # Put estimated logistic regression model on the plot
+  curve(expr = predict(object = mod.fit, newdata = data.frame(distance = x), type = "response"), col = "red", add = TRUE,
+    xlim = c(18, 66))
+```
+#Logistic regression is the appropriate regression analysis to conduct when the dependent variable is binary. We can compare logistic regression to describe data and to explain the relationship between one dependent binary variable and one or more nominal, ordinal, interval or ratio-level independent variables.
